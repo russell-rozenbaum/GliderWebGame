@@ -186,12 +186,9 @@ class Player {
         const v3y = this.yPivot + Math.sin(Math.PI / 2 - ang) * 10;
 
         ctx.beginPath();
-
         ctx.moveTo(v1x, v1y);
-
         ctx.lineTo(v2x, v2y);
         ctx.lineTo(v3x, v3y);
-
         ctx.closePath();
         ctx.fill();
         
@@ -199,6 +196,7 @@ class Player {
 
     drawTail(xVel, yVel) {
         // Draw the trailing line
+        ctx.strokeStyle = 'hsl(158, 33%, 33%)';
         ctx.beginPath();
         const startX = this.xPivot - xVel * 10;
         const startY = this.yPivot - yVel * 10;
