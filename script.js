@@ -8,7 +8,8 @@ let GRAVITY = .02;
 let VELMAX = 2;
 let LIFT = .02;
 const particlesArr = [];
-let hue = 0;
+let shade = 20;
+let saturation = 0;
 let clock = 0;
 
 const moveVel = {
@@ -253,7 +254,7 @@ class Particle {
         this.speedX = Math.random() * 3 - 1.5;
         this.speedY = Math.random() * 3 - 1.5;
         this.shrinkRate = Math.random() * .05 + .02;
-        this.color = 'hsl(' + hue + ', 100%, 50%)';
+        this.color = 'hsl(0, ' + saturation + '%, ' + shade + '%)';
     }
     update() {
         this.x += this.speedX;
@@ -356,7 +357,8 @@ function animate() {
     handlePlayer();
     gameEnv();
     handleParticles();
-    hue += 0.2;
+    shade > 80 ? shade = 20 : shade += 0.2;
+    saturation = (saturation + 0.2) % 10;
     requestAnimationFrame(animate);
 }
 animate();
