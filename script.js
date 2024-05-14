@@ -7,6 +7,9 @@ const blocks = [];
 let GRAVITY = .02;
 let VELMAX = 2;
 let LIFT = .02;
+const particlesArr = [];
+let hue = 0;
+let clock = 0;
 
 const moveVel = {
     up: 0,
@@ -18,6 +21,12 @@ const moveVel = {
 const mouse = {
     x: null,
     y: null,
+}
+
+
+const mouseAt = {
+    x: undefined,
+    y: undefined
 }
 
 class greyBlock {
@@ -38,7 +47,7 @@ class greyBlock {
     }
 }
 
-class blackBlock {
+class greenBlock {
     constructor(x, y, width, height) {
         this.x = x;
         this.y = y;
@@ -48,10 +57,10 @@ class blackBlock {
         this.bottom = y + height;
         this.left = x;
         this.right = x + width;
-        this.color = 'black';
+        this.color = 'green';
     }
     draw() {
-        ctx.fillStyle = this.color;
+        ctx.fillStyle = 'hsl(115, 75%, 70%)';
         ctx.fillRect(this.x, this.y, this.width, this.height);
     }
 }
@@ -115,17 +124,20 @@ class Player {
 
         // Handle environment boundaries
         for (let i = 0; i < blocks.length; i++) {
-            if (!this.withinBox(xVel, yVel, blocks[i])) {
+            if (!this.withinBox(xVel, yVel, blocks[i]) && this.inAir) {
+                console.log('moving');
                     this.xPivot += xVel;
                     this.yPivot += yVel;
+                    spawnParticles();
                 }
-            else if (this.yPivot >= blocks[i].top || this.yHead >= blocks[i].top) {
-                if(blocks[i].color == 'blue') {
-                    this.yHead >= blocks[i].top && this.vel > 0 ? this.vel *= -0.5 : null;
-                }
-                else if (blocks[i].color == 'grey') {
+            else if (this.yHead + yVel >= blocks[i].top) {
+                if (blocks[i].color == 'grey' && this.yPivot - yVel * 10 <= blocks[i].top) {
+                    console.log('not moving');
                     this.reset();
                 }  
+                else if (blocks[i].color == 'blue' || blocks[i].color == 'grey') {
+                    this.yHead >= blocks[i].top && this.vel > 0 ? this.vel *= -0.5 : null;
+                }
             }
         }
 
@@ -134,7 +146,7 @@ class Player {
 
     jump() {
         if (this.jumpsRem > 0) {
-            this.inAir ? this.vel = 1 : this.vel = 1;
+            this.inAir ? this.vel = 0.4 : this.vel = 0.4;
             this.inAir = true;
             this.jumpsRem--;
         }
@@ -152,9 +164,9 @@ class Player {
            (this.xPivot + xVel >= block.left ||
                 this.xHead + xVel >= block.left) && 
            (this.yPivot + yVel >= block.top ||
-                this.yHead + xVel >= block.top) &&
+                this.yHead + yVel >= block.top) &&
            (this.yPivot + yVel <= block.bottom ||
-                this.yHead + xVel <= block.bottom);
+                this.yHead + yVel <= block.bottom);
     }
 
     draw() {
@@ -230,14 +242,79 @@ window.addEventListener('keydown', function(event) {
 });
 
 
+
+
+
+class Particle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 5 + 1;
+        this.speedX = Math.random() * 3 - 1.5;
+        this.speedY = Math.random() * 3 - 1.5;
+        this.shrinkRate = Math.random() * .05 + .02;
+        this.color = 'hsl(' + hue + ', 100%, 50%)';
+    }
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.size - this.shrinkRate > 0.5) {
+            this.size -= this.shrinkRate;
+        }
+        if (this.x >= canvas.width || this.x <= 0) {
+            this.speedX *= -1;
+        }
+        if (this.y >= canvas.height || this.y <= 0) {
+            this.speedY *= -1;
+        }
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+}
+
+function handleParticles() {
+    for (let i = 0; i < particlesArr.length; i++) {
+        particlesArr[i].update();
+        particlesArr[i].draw();
+        for (j = i; j < particlesArr.length; j++) {
+            const dx = particlesArr[i].x - particlesArr[j].x;
+            const dy = particlesArr[i].y - particlesArr[j].y;
+            const hyp = Math.sqrt(dx*dx + dy*dy);
+            if (hyp < 150) {
+                ctx.beginPath();
+                ctx.strokeStyle = particlesArr[i].color;
+                ctx.lineWidth = particlesArr[i].size / 10;
+                ctx.moveTo(particlesArr[i].x, particlesArr[i].y);
+                ctx.lineTo(particlesArr[j].x, particlesArr[j].y);
+                ctx.stroke();
+            }
+        }
+        if (particlesArr[i].size < 1) {
+            particlesArr.splice(i, 1);
+            i--;
+        }
+    }
+}
+
 function handlePlayer() {
     player.update();
     player.draw();
 }
 
-
-
-
+function spawnParticles() {
+    if (clock >= 50) {
+        for (i = 0; i < 1; i++) {
+            particlesArr.push(new Particle(player.xPivot, player.yPivot));
+        }
+        clock = 0;
+    }
+    clock++;
+}
 
 
 
@@ -247,18 +324,30 @@ function handlePlayer() {
 
 // Game Environment
 blocks.push(new greyBlock(0, canvas.height / 1.09, canvas.width, 100));
-blocks.push(new greyBlock(0, canvas.height / 2, 110, 110));
-blocks.push(new blueBlock(500, canvas.height / 6, 110, 110));
+blocks.push(new greyBlock(0, canvas.height / 1.88, 110, 30));
+blocks.push(new greyBlock(600, canvas.height / 3, 110, 30));
+blocks.push(new greyBlock(280, canvas.height / 1.5, 110, 30));
+blocks.push(new greyBlock(725, canvas.height / 1.6, 110, 30));
+blocks.push(new greyBlock(1030, canvas.height / 2.22, 110, 30));
+blocks.push(new greyBlock(870, canvas.height / 6.15, 110, 30));
+
+blocks.push(new greyBlock(275, canvas.height / 2.5, 30, 110));
+blocks.push(new greyBlock(1275, canvas.height / 2.5, 30, 110));
+
+blocks.push(new blueBlock(533, canvas.height / 1.25, 50, 50));
+blocks.push(new blueBlock(388, canvas.height / 2, 50, 50));
+blocks.push(new blueBlock(600, canvas.height / 8, 50, 50));
+blocks.push(new blueBlock(155, canvas.height / 3.2, 50, 50));
+blocks.push(new blueBlock(933, canvas.height / 1.45, 50, 50));
+blocks.push(new blueBlock(1290, canvas.height / 3.45, 50, 50));
+blocks.push(new blueBlock(1290, canvas.height / 6.45, 50, 50));
+
+blocks.push(new greenBlock(1100, canvas.height / 9, 50, 50));
 function gameEnv() {
     for (let i = 0; i < blocks.length; i++) {
         blocks[i].draw();
     }
 }
-
-
-
-
-
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -266,6 +355,8 @@ function animate() {
     // ctx.fillRect(0, 0, canvas.width, canvas.height)
     handlePlayer();
     gameEnv();
+    handleParticles();
+    hue += 0.2;
     requestAnimationFrame(animate);
 }
 animate();
